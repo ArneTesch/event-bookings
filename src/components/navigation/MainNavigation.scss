@@ -1,0 +1,53 @@
+.main-navigation {
+  position: fixed;
+  background-color: #2d3436;
+  top: 0;
+  left: 0;
+  height: 6.5rem;
+  padding: 0 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: #fff;
+
+  &__logo {
+    & h1 {
+      margin: 0;
+      font-size: 2.5rem;
+    }
+  }
+
+  &__items {
+    margin: 1.5rem;
+    padding-right: 2.5rem;
+
+    & ul {
+      list-style: none;
+      display: flex;
+      padding: 0;
+      margin: 0;
+
+      & li {
+        margin-right: 1rem;
+      }
+    }
+    & a,
+    button {
+      color: #00b894;
+      text-decoration: none;
+      font-size: 1.6rem;
+      transition: color 0.3s ease;
+      text-transform: uppercase;
+      font-family: "Open Sans";
+      background-color: transparent;
+      border: none;
+      cursor: pointer;
+
+      &:hover,
+      &:active {
+        color: darken(#00b894, 10%);
+      }
+    }
+  }
+}

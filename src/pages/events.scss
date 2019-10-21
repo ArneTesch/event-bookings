@@ -1,0 +1,32 @@
+.events-control {
+  text-align: center;
+  border: 1px solid #00b894;
+  padding: 1.5rem;
+  width: 30rem;
+  max-width: 80%;
+  margin: 1rem auto;
+
+  & button.btn {
+    margin-left: 0;
+  }
+
+  & p {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+  }
+}
+
+.events__list {
+  width: 40rem;
+  max-width: 90%;
+  margin: 2rem auto;
+  padding: 0;
+
+  &-item {
+    list-style: none;
+    font-size: 1.4rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid #00b894;
+  }
+}
