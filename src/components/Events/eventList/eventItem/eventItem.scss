@@ -1,0 +1,28 @@
+.event__list-item {
+  list-style: none;
+  font-size: 1.4rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #00b894;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  & h1 {
+    color: #00b894;
+  }
+
+  & h2 {
+    color: #7c7c7c;
+    font-size: 1.2rem;
+  }
+
+  & h1,
+  h2 {
+    font-size: 1.6rem;
+  }
+
+  & p {
+    font-size: 1.2rem;
+  }
+}

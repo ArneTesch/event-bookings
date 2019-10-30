@@ -1,11 +1,12 @@
 import React, { FunctionComponent, ReactNode } from "react";
-import "./Modal.scss";
+import "./modal.scss";
 
 export interface ModalProps {
   title?: string;
   children?: ReactNode;
   canCancel?: boolean;
   canConfirm?: boolean;
+  confirmText: string;
   onCancel(): void;
   onConfirm(): void;
 }
@@ -24,7 +25,7 @@ const Modal: FunctionComponent<ModalProps> = props => (
       )}
       {props.canConfirm && (
         <button className="btn" onClick={props.onConfirm}>
-          Confirm
+          {props.confirmText}
         </button>
       )}
     </section>

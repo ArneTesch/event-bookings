@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import AuthContext from "../../context/auth-context";
-import "./MainNavigation.scss";
+import "./mainNavigation.scss";
 
 interface IProps {}
 

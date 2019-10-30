@@ -10,6 +10,11 @@
 
   &__content {
     padding: 1rem;
+
+    & h1,
+    h2 {
+      margin-bottom: 1rem;
+    }
     & p {
       font-size: 1.6rem;
     }

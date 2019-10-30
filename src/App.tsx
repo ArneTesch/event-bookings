@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter, Redirect, Route, Switch } from "react-router-dom";
 import "./App.scss";
-import MainNavigation from "./components/navigation/MainNavigation";
+import MainNavigation from "./components/navigation/mainNavigation";
 import AuthContext from "./context/auth-context";
 import AuthPage from "./pages/auth";
 import BookingsPage from "./pages/bookings";

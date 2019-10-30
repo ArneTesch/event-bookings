@@ -1,7 +1,9 @@
 import { autobind } from "core-decorators";
 import React from "react";
-import Backdrop from "../components/Backdrop/Backdrop";
-import Modal from "../components/Modal/Modal";
+import Backdrop from "../components/Backdrop/backdrop";
+import EventList from "../components/Events/eventList/eventList";
+import Modal from "../components/Modal/modal";
+import Spinner from "../components/Spinner/spinner";
 import AuthContext from "../context/auth-context";
 import "./events.scss";
 
@@ -9,12 +11,14 @@ export interface EventsPageProps {}
 
 export interface EventsPageState {
   creating: boolean;
+  isLoading: boolean;
+  selectedEvent: Event | null | undefined;
   events: Event[];
 }
 
 export interface User {
   _id: string;
-  email: string;
+  email?: string;
 }
 
 export interface Event {
@@ -23,7 +27,7 @@ export interface Event {
   description: string;
   price: number;
   date: string;
-  creator: User;
+  creator?: User;
 }
 
 @autobind
@@ -32,6 +36,11 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
   private priceRef: React.RefObject<HTMLInputElement>;
   private dateRef: React.RefObject<HTMLInputElement>;
   private descriptionRef: React.RefObject<HTMLTextAreaElement>;
+
+  // Makes this.context available through the component
+  static contextType = AuthContext;
+
+  isActive: boolean = true;
 
   constructor(props: EventsPageProps) {
     super(props);
@@ -45,11 +54,14 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
     this.fetchEvents();
   }
 
-  // Makes this.context available through the component
-  static contextType = AuthContext;
+  componentWillUnmount() {
+    this.isActive = false;
+  }
 
   public state: EventsPageState = {
     creating: false,
+    isLoading: false,
+    selectedEvent: null,
     events: [
       {
         _id: "",
@@ -64,6 +76,7 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
       }
     ]
   };
+
   startCreateEventHandler = () => {
     this.setState({ creating: true });
   };
@@ -88,20 +101,23 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
 
     const requestBody = {
       query: `
-        mutation {
-          createEvent(eventInput: { title: "${title}", price: ${price}, date: "${date}", description: "${description}"}) {
+        mutation CreateEvent ($title: String!, $price: Float!, $date: String!, $description: String!){
+          createEvent(eventInput: { title: $title, price: $price, date: $date, description: $description}) {
             _id
             title
             description
             price
             date
-            creator {
-              _id
-              email
-            }
           }
         }
-      `
+      `,
+      // left side refers to the args in the mutation CreateEvent (...)
+      variables: {
+        title: title,
+        price: price,
+        date: date,
+        description: description
+      }
     };
 
     const token = this.context.token;
@@ -118,11 +134,25 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
         if (res.status !== 200 && res.status !== 201) {
           throw new Error("Failed to add event");
         }
+        this.setState({ creating: false });
         return res.json();
       })
       .then(resData => {
-        console.log({ resData });
-        this.fetchEvents();
+        this.setState(prevState => {
+          const updatedEvents = [...prevState.events];
+          console.log({ resData });
+          updatedEvents.push({
+            _id: resData.data.createEvent._id,
+            title: resData.data.createEvent.title,
+            description: resData.data.createEvent.description,
+            price: resData.data.createEvent.price,
+            date: resData.data.createEvent.date,
+            creator: {
+              _id: this.context.userId
+            }
+          });
+          return { events: updatedEvents };
+        });
       })
       .catch(err => {
         console.error(err, "Failed to add event");
@@ -130,10 +160,66 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
   };
 
   modalCancelHandler = () => {
-    this.setState({ creating: false });
+    this.setState({ creating: false, selectedEvent: null });
+  };
+
+  bookEventHandler = () => {
+    const { selectedEvent } = this.state;
+
+    if (!selectedEvent) {
+      return;
+    }
+
+    if (!this.context.token) {
+      this.setState({ selectedEvent: null });
+      return;
+    }
+
+    const requestBody = {
+      query: `
+        mutation BookEvent ($id: ID!){
+          bookEvent(eventId: $id) {
+            _id
+            createdAt
+            updatedAt
+          }
+        }
+      `,
+      variables: {
+        id: this.state.selectedEvent && this.state.selectedEvent._id
+      }
+    };
+
+    const token = this.context.token;
+
+    fetch("http://localhost:8000/graphql", {
+      method: "POST",
+      body: JSON.stringify(requestBody),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + token
+      }
+    })
+      .then(res => {
+        if (res.status !== 200 && res.status !== 201) {
+          throw new Error("Failed to add booking");
+        }
+        this.setState({ creating: false });
+        return res.json();
+      })
+      .then(resData => {
+        console.log({ resData });
+        this.setState({ selectedEvent: null });
+      })
+      .catch(err => {
+        console.error(err, "Failed to add booking");
+      });
   };
 
   fetchEvents() {
+    this.setState({
+      isLoading: true
+    });
     const requestBody = {
       query: `
         query {
@@ -166,32 +252,32 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
         return res.json();
       })
       .then(resData => {
-        console.log({ resData });
         const events = resData.data.events;
-        this.setState({ events: events });
+        if (this.isActive) {
+          this.setState({ events: events, isLoading: false });
+        }
       })
       .catch(err => {
         console.error(err, "Failed to get events");
+        if (this.isActive) {
+          this.setState({ isLoading: false });
+        }
       });
   }
 
+  showDetailHandler = (eventId: string) => {
+    this.setState(prevState => {
+      const selectedEvent = prevState.events.find(e => eventId === e._id);
+      return { selectedEvent: selectedEvent };
+    });
+  };
+
   render() {
-    const { creating, events } = this.state;
+    const { creating, events, selectedEvent } = this.state;
 
-    const eventList =
-      events &&
-      events.map(event => {
-        return (
-          <li key={event._id} className="events__list-item">
-            {event.title}
-          </li>
-        );
-      });
-
-    console.log({ eventList });
     return (
       <React.Fragment>
-        {creating && <Backdrop />}
+        {(creating || selectedEvent) && <Backdrop />}
         {creating && (
           <Modal
             title="Add event"
@@ -199,6 +285,7 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
             canConfirm
             onCancel={this.modalCancelHandler}
             onConfirm={this.modalConfirmHandler}
+            confirmText="Confirm"
           >
             <form className="events-form">
               <div className="form-control">
@@ -220,6 +307,23 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
             </form>
           </Modal>
         )}
+        {selectedEvent && (
+          <Modal
+            title={selectedEvent.title}
+            canCancel
+            canConfirm
+            confirmText={this.context.token ? "Book!" : "Confirm"}
+            onCancel={this.modalCancelHandler}
+            onConfirm={this.bookEventHandler}
+          >
+            <h1>{selectedEvent.title}</h1>
+            <h2>
+              ${selectedEvent.price} -{" "}
+              {new Date(selectedEvent.date).toLocaleDateString()}
+            </h2>
+            <p>{selectedEvent.description}</p>
+          </Modal>
+        )}
         {this.context.token && (
           <div className="events-control">
             <p>Share your own events!</p>
@@ -229,7 +333,12 @@ class EventsPage extends React.Component<EventsPageProps, EventsPageState> {
           </div>
         )}
         <section className="events">
-          <ul className="events__list">{eventList}</ul>
+          {this.state.isLoading ? <Spinner /> : false}
+          <EventList
+            onViewDetail={this.showDetailHandler}
+            authUserId={this.context.userId}
+            events={events}
+          />
         </section>
       </React.Fragment>
     );
